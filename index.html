@@ -1,0 +1,150 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#111318" />
+    <title>Chess Engine Arena</title>
+    <link rel="stylesheet" href="/styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="app-header">
+        <div class="brand-block">
+          <span class="brand-mark" aria-hidden="true">&#9822;</span>
+          <div><p class="eyebrow">LOCAL UCI MATCH LAB</p><h1>Chess Engine Arena</h1></div>
+        </div>
+        <div class="header-status">
+          <span id="connectionDot" class="connection-dot" aria-hidden="true"></span>
+          <span id="connectionText">Connecting</span>
+          <span id="statusBadge" class="status-badge">Idle</span>
+        </div>
+      </header>
+
+      <main>
+        <section class="setup-band" aria-label="Match configuration">
+          <div class="engine-config">
+            <div class="section-heading"><span class="slot-label">ENGINE A</span><span id="colorBadgeA" class="color-badge white">White</span></div>
+            <label for="engineAPath">Executable</label>
+            <input id="engineAPath" type="text" spellcheck="false" autocomplete="off" />
+          </div>
+
+          <div class="match-controls">
+            <div class="control-row primary-actions">
+              <button id="startButton" class="button button-primary" type="button"><span data-icon="play"></span><span>Start</span></button>
+              <button id="stopButton" class="button button-danger" type="button" disabled><span data-icon="stop"></span><span>Stop</span></button>
+              <button id="resetButton" class="icon-button" type="button" title="Reset match" aria-label="Reset match"><span data-icon="reset"></span></button>
+              <button id="swapButton" class="icon-button" type="button" title="Swap engine colors" aria-label="Swap engine colors"><span data-icon="swap"></span></button>
+            </div>
+            <div class="limit-row">
+              <div class="segmented" role="group" aria-label="Move limit mode">
+                <button id="timeMode" class="segment active" type="button">Time</button>
+                <button id="depthMode" class="segment" type="button">Depth</button>
+              </div>
+              <div id="timeField" class="numeric-field">
+                <label for="timeMs">Time / move</label>
+                <div class="input-unit"><input id="timeMs" type="number" min="100" max="120000" step="100" /><span>ms</span></div>
+              </div>
+              <div id="depthField" class="numeric-field hidden">
+                <label for="depth">Depth / move</label>
+                <div class="input-unit"><input id="depth" type="number" min="1" max="64" step="1" /><span>ply</span></div>
+              </div>
+            </div>
+            <div class="limit-row">
+              <span class="row-label">Start position</span>
+              <div class="segmented" role="group" aria-label="Start position">
+                <button id="standardPosition" class="segment active" type="button">Standard</button>
+                <button id="customPosition" class="segment" type="button">Custom</button>
+              </div>
+            </div>
+            <details class="advanced-settings">
+              <summary>Advanced</summary>
+              <div class="advanced-grid">
+                <div><label for="maxPlies">Maximum plies</label><input id="maxPlies" type="number" min="2" max="1000" step="2" /></div>
+                <div><label for="refereePath">Rules referee</label><input id="refereePath" type="text" spellcheck="false" autocomplete="off" /></div>
+              </div>
+            </details>
+          </div>
+
+          <div class="engine-config">
+            <div class="section-heading"><span class="slot-label">ENGINE B</span><span id="colorBadgeB" class="color-badge black">Black</span></div>
+            <label for="engineBPath">Executable</label>
+            <input id="engineBPath" type="text" spellcheck="false" autocomplete="off" />
+          </div>
+        </section>
+
+        <div id="messageBar" class="message-bar" role="status" aria-live="polite">Loading match state...</div>
+
+        <section class="arena-layout" aria-label="Engine match">
+          <aside id="enginePanelA" class="engine-panel" aria-label="Engine A statistics"></aside>
+          <div class="board-workspace">
+            <div class="board-toolbar">
+              <div id="turnIndicator" class="turn-indicator">White to move</div>
+              <div id="resultDisplay" class="result-display"></div>
+              <button id="flipButton" class="icon-button compact" type="button" title="Flip board" aria-label="Flip board"><span data-icon="flip"></span></button>
+            </div>
+            <div class="board-row">
+              <div class="evaluation-wrap" aria-label="Position evaluation">
+                <div id="evalLabelTop" class="eval-side-label">Black</div>
+                <div class="evaluation-bar"><div id="whiteEval" class="evaluation-white"></div><div id="evalScore" class="evaluation-score">0.00</div></div>
+                <div id="evalLabelBottom" class="eval-side-label">White</div>
+              </div>
+              <div id="chessboard" class="chessboard" role="img" aria-label="Chess position"></div>
+            </div>
+            <section id="positionEditor" class="position-editor hidden" aria-label="Start position editor">
+              <div class="editor-heading">
+                <h2>Position editor</h2>
+                <span id="editorValidity" class="editor-validity">White to move, move 1</span>
+              </div>
+              <div class="editor-body">
+                <div id="piecePalette" class="piece-palette" role="group" aria-label="Piece palette"></div>
+                <div class="editor-meta">
+                  <div class="meta-field">
+                    <label id="sideToMoveLabel">Side to move</label>
+                    <div class="segmented" role="group" aria-labelledby="sideToMoveLabel">
+                      <button id="editorWhiteToMove" class="segment active" type="button">White</button>
+                      <button id="editorBlackToMove" class="segment" type="button">Black</button>
+                    </div>
+                  </div>
+                  <div class="meta-field">
+                    <label id="castlingLabel">Castling</label>
+                    <div id="castlingChips" class="castling-chips" role="group" aria-labelledby="castlingLabel"></div>
+                  </div>
+                  <div class="meta-field narrow"><label for="editorEp">En passant</label><input id="editorEp" type="text" maxlength="2" spellcheck="false" autocomplete="off" placeholder="-" /></div>
+                  <div class="meta-field narrow"><label for="editorHalfmove">Halfmove</label><input id="editorHalfmove" type="number" min="0" max="500" step="1" /></div>
+                  <div class="meta-field narrow"><label for="editorFullmove">Move no.</label><input id="editorFullmove" type="number" min="1" max="9999" step="1" /></div>
+                </div>
+              </div>
+              <div class="editor-fen">
+                <label for="startFen">FEN</label>
+                <div class="fen-row">
+                  <input id="startFen" type="text" spellcheck="false" autocomplete="off" />
+                  <button id="editorStandardButton" class="button button-quiet" type="button">Standard</button>
+                  <button id="editorClearButton" class="button button-quiet" type="button">Clear</button>
+                  <button id="editorUseGameButton" class="button button-quiet" type="button">Use game</button>
+                </div>
+              </div>
+            </section>
+          </div>
+          <aside id="enginePanelB" class="engine-panel" aria-label="Engine B statistics"></aside>
+        </section>
+
+        <section class="analysis-strip" aria-label="Match analysis">
+          <div class="move-ledger">
+            <div class="strip-heading"><h2>Moves</h2><span id="moveCount">0 plies</span></div>
+            <div class="move-table-wrap">
+              <table class="move-table"><thead><tr><th>#</th><th>White</th><th>Black</th><th>Eval</th></tr></thead><tbody id="moveTableBody"></tbody></table>
+            </div>
+          </div>
+          <div class="live-analysis">
+            <div class="strip-heading"><h2>Live line</h2><span id="activeEngineLabel">Waiting</span></div>
+            <div id="pvLine" class="pv-line">No principal variation</div>
+            <div class="position-meta"><span id="fenText">FEN</span><button id="copyFenButton" class="icon-button compact" type="button" title="Copy FEN" aria-label="Copy FEN"><span data-icon="copy"></span></button></div>
+          </div>
+        </section>
+      </main>
+    </div>
+    <div id="toast" class="toast" role="alert"></div>
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
