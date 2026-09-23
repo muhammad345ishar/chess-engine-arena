@@ -1,10 +1,10 @@
 # Chess Engine Arena Progress
 
-Last updated: 2026-09-02 (Asia/Karachi)
+Last updated: 2026-09-23 (Asia/Karachi)
 
 ## Objective
 
-Create a local GUI where any two UCI chess engines can play each other with configurable time-per-move or depth-per-move limits, color assignment, live engine statistics, move history, and a position evaluation bar.
+Create a local GUI where any two UCI chess engines can play each other with configurable time-per-move or depth-per-move limits, color assignment, live engine statistics, move history, and a position evaluation bar. Matches can start from the standard opening position or from any custom position.
 
 ## Current Checkpoint
 
@@ -14,13 +14,11 @@ Create a local GUI where any two UCI chess engines can play each other with conf
 - Stockfish 18 runs as an independent rules referee, providing legal moves, FEN, check, mate, and stalemate state.
 - SSE endpoint streams match state to the browser.
 - `server/uci-engine.js`, `server/match-controller.js`, and `server/index.js` are implemented.
-- Dependency-free frontend restored: `index.html`, `styles.css`, and `app.js` now provide the board, evaluation bar, engine settings, match controls, clocks, live statistics, move ledger, PV display, and responsive layouts.
-- JavaScript syntax checks pass for all server files and the browser app.
-- The minimal `package-lock.json` was inspected and retained; it contains no dependencies and accurately matches `package.json`.
+- Dependency-free frontend: `index.html`, `styles.css`, and `app.js` provide the board, evaluation bar, engine settings, match controls, clocks, live statistics, move ledger, PV display, and responsive layouts.
 - Same-engine matches are supported by launching two independent instances of the selected executable.
-- README usage instructions added in `README.md`.
-- Browser verification completed at 1440x1000 and 375x900: board and evaluation bar render, controls respond, and there is no horizontal overflow at either size.
-- Exact resume point: project is ready for local use; keep this file updated if additional engines or features are added.
+- Custom start positions are implemented: a FEN field plus a click-to-place board editor, with shared validation in `fen.js`.
+- Work is committed on `main`; the initial commit is `307fb7f`.
+- Exact resume point: the feature set is complete and verified for local use. Keep this file updated if additional engines or features are added.
 
 ## Architecture
 
@@ -31,27 +29,42 @@ Create a local GUI where any two UCI chess engines can play each other with conf
 - Live data: UCI `info` lines feed evaluation, PV, depth, nodes, NPS, and clocks over SSE.
 - Runtime dependencies: Node.js standard library and browser APIs only; no package download is required.
 
+## Custom Start Positions
+
+- `fen.js` sits at the project root and is imported by both `server/match-controller.js` and `app.js`, so the server and the browser share one definition of a legal position. `server/index.js` serves it as a static file.
+- Input is bidirectional: typing a FEN redraws the board editor, and editing the board rewrites the FEN field.
+- Editor interactions: palette click-to-select then click-to-place, palette drag, square-to-square drag, right-click erase, eraser brush, and keyboard placement with Enter or Space.
+- Metadata controls: side to move, four castling chips, en passant target, halfmove clock, fullmove number. Shortcuts: `Standard`, `Clear`, and `Use game` for branching from a live game.
+- Validation runs in two layers. `fen.js` checks structure locally before any process starts. `resolveStartPosition` in `server/match-controller.js` then asks the referee, adopts the referee's normalized FEN, and rejects positions that cannot legally occur.
+- Backward compatibility is structural: `positionCommand` emits `position startpos` whenever the start FEN equals the standard opening, and only switches to `position fen <FEN>` for a custom position.
+- Move numbering comes from the FEN. `playOneMove` captures `fullmove` before the move and stamps it on the history record, so a Black-to-move start renders an empty White cell on its opening row.
+
 ## Verification
 
-- `node --check server/index.js` passed.
-- `node --check server/match-controller.js` passed.
-- `node --check server/uci-engine.js` passed.
-- `node --check app.js` passed.
-- Time mode: Aether vs Stockfish, 150 ms per move, four plies completed; result was a controlled draw at the configured maximum.
-- Depth mode: Stockfish (White) vs Aether (Black), depth 3, four plies completed; result was a controlled draw at the configured maximum.
-- UI interaction: color swap, board flip, Time/Depth segmented control, FEN copy control, and live settings lock verified.
-- FEN copy verified through the browser clipboard; no page console errors were reported.
-- Live state confirmed engine identities, Aether author `Muhammad Ishar`, legal UCI moves, FEN updates, evaluation, PV, depth, nodes, NPS, clocks, and move ledger.
+- `node --check` passes for `server/index.js`, `server/match-controller.js`, `server/uci-engine.js`, `app.js`, and `fen.js`.
+- `npm test` runs `server/fen.test.js`; it reports `fen.js: all checks passed`.
+- Standard matches, protocol level: a `tee` wrapper on Engine A's stdin captured `position startpos` and `position startpos moves b1c3 d7d5`, identical to the behavior before custom positions existed. Custom matches captured `position fen <FEN>`.
+- Custom match plays to a real result: from `6k1/5ppp/8/8/8/8/5PPP/R5K1 w - - 0 12`, Aether 0.2 played `a1a8`, the referee scored it, and the server reported `finished` with `1-0 - Checkmate`.
+- Black to move: from `6k1/5ppp/8/8/8/8/5PPP/R5K1 b - - 0 12`, the move table opened on row 12 with an empty White cell and Black `g7g5`, then continued on row 13 with White `f2f4` and Black `g5f4`.
+- Branching: a standard match was played to `rnbqkb1r/ppp1pppp/5n2/3p4/8/2N2N2/PPPPPPPP/R1BQKB1R w KQkq - 2 3`, `Use game` loaded that exact FEN including castling rights, and a new match from it opened the move table on row 3 and played legal continuations.
+- Rejections return HTTP 400 with specific messages and leave the board on the last valid position: `4k3/4R3/8/8/8/8/8/4K3 w - - 0 1` and `8/8/8/3kK3/8/8/8/8 w - - 0 1` both give "the side not to move is in check"; a missing king gives "A position needs exactly one white king and one black king"; a malformed rank gives "Rank 1 does not describe 8 squares".
+- SSE streaming confirmed live: a probe `EventSource` received the full ordered sequence `idle`, `starting`, `running`, thinking, move played, `finished`, and the DOM matched the server snapshot at the end.
+- Responsive: 1440x1000 and 375x900 with the editor open. At 375x900 horizontal overflow is 0 px, no element extends past the viewport, and the turn indicator and result text clear each other by 10 px.
+- UI interaction: color swap, board flip, Time/Depth segmented control, Standard/Custom segmented control, FEN copy, and live settings lock verified.
 - `package-lock.json` retained after inspection; it contains no dependencies and matches the dependency-free package manifest.
+
+## Known Gaps
+
+- `start()` initializes both competitor engines and the referee together, so a position the referee rejects is caught after the engines have spawned. The catch closes every process, so nothing leaks, but the engines start and stop for a position that was never playable. Initializing the referee first would avoid the wasted spawn.
 
 ## Default Engines
 
-- Aether: `/Users/muhammadishar/Projects/aether-chess/build/aether`
+- Aether: `/Users/muhammadishar/Projects/chess/aether-chess/build/aether`
 - Stockfish 18: `/usr/local/bin/stockfish`
 
 ## Resume
 
 ```sh
-cd /Users/muhammadishar/Projects/chess-engine-arena
+cd /Users/muhammadishar/Projects/chess/chess-engine-arena
 npm run dev
 ```

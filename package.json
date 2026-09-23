@@ -5,6 +5,7 @@
   "type": "module",
   "scripts": {
     "dev": "node server/index.js",
-    "start": "node server/index.js"
+    "start": "node server/index.js",
+    "test": "node server/fen.test.js"
   }
 }
