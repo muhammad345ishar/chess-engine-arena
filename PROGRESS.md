@@ -39,6 +39,13 @@ Create a local GUI where any two UCI chess engines can play each other with conf
 - Backward compatibility is structural: `positionCommand` emits `position startpos` whenever the start FEN equals the standard opening, and only switches to `position fen <FEN>` for a custom position.
 - Move numbering comes from the FEN. `playOneMove` captures `fullmove` before the move and stamps it on the history record, so a Black-to-move start renders an empty White cell on its opening row.
 
+## Visual Design (updated 2026-09-24)
+
+- `styles.css` was rewritten as a warm-neutral dark design system that frames the board art (`images/200.png`) as the hero. Depth comes from elevation (layered surfaces + shadows + a top inset highlight) rather than hairline borders; all numeric data uses a monospace stack with `tabular-nums` to stop jitter.
+- Tokens live in `:root`: surface ramp (`--bg`/`--panel`/`--panel-2`/`--panel-3`/`--inset`), text ramp, a green primary accent (`--accent`) that echoes the board, gold and danger accents, an 8px spacing scale (`--sp-*`), radii, elevation, and motion vars. `--board-size` keeps the responsive board sizing.
+- The change is CSS-only except one `index.html` edit: the brandmark `♞` glyph became an inline SVG checker motif in a rounded gold badge, and `theme-color` was warmed to `#15170f`. No JS hooks were touched — the four load-bearing selectors (`move-table-wrap`, `palette-piece`, `castling-chip`, `square`) and all ids/classes `app.js` drives are unchanged.
+- Verified live in the preview at 1440x900 and 375x812: styles.css and all assets load 200, no console/network errors, no horizontal overflow (mobile scrollWidth == innerWidth), board renders at 594px (desktop) / 307px (mobile), engine panels show live telemetry, and the setup/arena/analysis regions keep their grid behavior.
+
 ## Verification
 
 - `node --check` passes for `server/index.js`, `server/match-controller.js`, `server/uci-engine.js`, `app.js`, and `fen.js`.
@@ -59,12 +66,12 @@ Create a local GUI where any two UCI chess engines can play each other with conf
 
 ## Default Engines
 
-- Aether: `/Users/muhammadishar/Projects/chess/aether-chess/build/aether`
+- Aether: `../aether-chess/build/aether`
 - Stockfish 18: `/usr/local/bin/stockfish`
 
 ## Resume
 
 ```sh
-cd /Users/muhammadishar/Projects/chess/chess-engine-arena
+cd chess-engine-arena
 npm run dev
 ```

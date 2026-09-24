@@ -1,12 +1,12 @@
 import { EMPTY_FEN, START_FEN, parsePlacement, serializeFen, validateFen } from "./fen.js";
 
-const PIECES = {
-  K: "♔", Q: "♕", R: "♖", B: "♗", N: "♘", P: "♙",
-  k: "♚", q: "♛", r: "♜", b: "♝", n: "♞", p: "♟",
-};
-
 const PIECE_NAMES = { k: "king", q: "queen", r: "rook", b: "bishop", n: "knight", p: "pawn" };
 const PALETTE = ["K", "Q", "R", "B", "N", "P", "k", "q", "r", "b", "n", "p"];
+
+// Piece art lives in images/, named <color><type>.png, e.g. wn.png for a white knight.
+function pieceImage(code) {
+  return `images/${code === code.toUpperCase() ? "w" : "b"}${code.toLowerCase()}.png`;
+}
 const CASTLING_RIGHTS = [
   { right: "K", label: "White kingside" },
   { right: "Q", label: "White queenside" },
@@ -120,7 +120,7 @@ function renderBoard() {
     for (const file of files) {
       const name = `${file}${rank}`;
       const square = document.createElement("div");
-      const light = (file.charCodeAt(0) - 97 + rank) % 2 === 1;
+      const light = (file.charCodeAt(0) - 97 + rank) % 2 === 0;
       square.className = `square ${light ? "light" : "dark"}`;
       if (last && [last.from, last.to].includes(name)) square.classList.add("last");
       const pieceCode = board[name];
@@ -132,10 +132,11 @@ function renderBoard() {
         square.setAttribute("aria-label", pieceCode ? `${name}, ${pieceLabel(pieceCode)}` : `${name}, empty`);
       }
       if (pieceCode) {
-        const piece = document.createElement("span");
+        const piece = document.createElement("img");
         piece.className = "piece";
-        piece.textContent = PIECES[pieceCode];
-        if (editing) piece.draggable = true;
+        piece.src = pieceImage(pieceCode);
+        piece.alt = pieceLabel(pieceCode);
+        piece.draggable = editing;
         square.append(piece);
       }
       if (file === files[0]) {
@@ -296,7 +297,11 @@ function buildPalette() {
     button.className = `palette-piece ${code === code.toUpperCase() ? "white" : "black"}`;
     button.dataset.piece = code;
     button.draggable = true;
-    button.textContent = PIECES[code];
+    const image = document.createElement("img");
+    image.src = pieceImage(code);
+    image.alt = "";
+    image.draggable = false;
+    button.append(image);
     button.title = pieceLabel(code);
     button.setAttribute("aria-label", pieceLabel(code));
     fragment.append(button);

@@ -10,7 +10,7 @@ Chess Engine Arena is a local, dependency-free GUI for running two UCI chess eng
 
 The default paths are:
 
-- Engine A: `/Users/muhammadishar/Projects/chess/aether-chess/build/aether`
+- Engine A: `../aether-chess/build/aether`
 - Engine B: `/usr/local/bin/stockfish`
 - Rules referee: `/usr/local/bin/stockfish`
 
@@ -19,7 +19,7 @@ Change these paths in the Advanced section or directly in the Engine A/B fields.
 ## Run
 
 ```sh
-cd /Users/muhammadishar/Projects/chess/chess-engine-arena
+cd chess-engine-arena
 npm run dev
 ```
 

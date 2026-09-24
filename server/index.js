@@ -7,12 +7,28 @@ import { MatchController } from "./match-controller.js";
 const projectRoot = join(dirname(fileURLToPath(import.meta.url)), "..");
 const clients = new Set();
 const allowedFiles = new Set(["index.html", "styles.css", "app.js", "fen.js"]);
+const imageExtensions = new Set([".png", ".svg", ".jpg", ".jpeg", ".webp", ".gif"]);
 const contentTypes = {
   ".html": "text/html; charset=utf-8",
   ".css": "text/css; charset=utf-8",
   ".js": "text/javascript; charset=utf-8",
   ".json": "application/json; charset=utf-8",
+  ".png": "image/png",
+  ".svg": "image/svg+xml",
+  ".jpg": "image/jpeg",
+  ".jpeg": "image/jpeg",
+  ".webp": "image/webp",
+  ".gif": "image/gif",
 };
+
+// A request is served only if it is one of the whitelisted top-level files, or an image file that
+// sits directly inside images/. normalize() has already resolved any "." or ".." segments, and any
+// path that escaped the project root no longer starts with "images/", so the prefix check is safe.
+function isAllowedFile(safe) {
+  if (allowedFiles.has(safe)) return true;
+  const name = safe.startsWith("images/") ? safe.slice("images/".length) : null;
+  return name !== null && !name.includes("/") && imageExtensions.has(extname(name));
+}
 
 function publish(state) {
   const event = `data: ${JSON.stringify(state)}\n\n`;
@@ -38,12 +54,17 @@ async function readJson(request) {
 async function serveFile(response, pathname) {
   const requested = pathname === "/" ? "index.html" : pathname.slice(1);
   const safe = normalize(requested).replace(/^(\.\.(\/|\\|$))+/, "");
-  if (!allowedFiles.has(safe)) {
+  if (!isAllowedFile(safe)) {
     response.writeHead(404);
     response.end("Not found");
     return;
   }
-  const file = await readFile(join(projectRoot, safe));
+  const file = await readFile(join(projectRoot, safe)).catch(() => null);
+  if (file === null) {
+    response.writeHead(404);
+    response.end("Not found");
+    return;
+  }
   response.writeHead(200, { "Content-Type": contentTypes[extname(safe)] ?? "application/octet-stream" });
   response.end(file);
 }

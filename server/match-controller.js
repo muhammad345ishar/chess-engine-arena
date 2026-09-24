@@ -1,8 +1,8 @@
 import { UciEngine, validateExecutable } from "./uci-engine.js";
 import { START_FEN, flipTurn, parsePlacement, validateFen } from "../fen.js";
 
-const DEFAULT_AETHER = "/Users/muhammadishar/Projects/chess/aether-chess/build/aether";
-const DEFAULT_STOCKFISH = "/usr/local/bin/stockfish";
+const DEFAULT_AETHER = process.env.AETHER_ENGINE ?? "../aether-chess/build/aether";
+const DEFAULT_STOCKFISH = process.env.STOCKFISH ?? "/usr/local/bin/stockfish";
 
 function emptyEngine(slot, path) {
   return {
